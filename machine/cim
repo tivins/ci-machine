@@ -1,6 +1,7 @@
 #!/usr/bin/env php
 <?php
 
+use Tivins\CIMachine\CICli;
 use Tivins\CIMachine\CIMachine;
 use Tivins\CIMachine\GitLocation;
 use Tivins\Core\Log\CLILogger;
@@ -10,38 +11,7 @@ use Tivins\Core\OptionsArgs;
 
 require __dir__ . '/../vendor/autoload.php';
 
-function usage()
-{
-    $cases = [];
-    foreach (Level::cases() as $case) {
-        $cases[] = "$case->value ($case->name)";
-    }
-    $cases = implode(', ', $cases);
-
-    echo<<<EOF
-
-    Usage: 
-        cim --uri <uri> [options]
-
-    General options :
-        -h, --help                  Display this help.
-        -v, --verbose <mode>        Verbose level : $cases.
-
-    Machine options (build-time) :
-        -p, --php <phpvers>         PHP version, ex: "8.1" or "latest". Default is "lastest".
-        
-    Repository options (run-time) :
-        -u, --uri <uri>             [required] URI of the repository to check.
-        -b, --branch <branch>       Branch. Default is "default".
-        -c, --commit <commit>       Commit ID. Default is "HEAD". 
-
-    Examples:
-        cim --uri https://github.com/tivins/ci-example-1.git --php "7.4"
-        cim --uri https://github.com/tivins/ci-example-1.git --php "8.1" --branch "test-php-8-1"
-
-
-EOF;
-}
+$ciCLI = new CICli();
 
 $options = (new OptionsArgs())
     ->add(new OptionArg('u', true, 'uri'))
@@ -55,13 +25,13 @@ $options = (new OptionsArgs())
 $logger = new CLILogger();
 
 if (isset($options['help'])) {
-    usage();
-    exit;
+    echo $ciCLI->usage();
+    exit(0);
 }
 
 if (!isset($options['uri'])) {
     $logger->log(Level::DANGER, "URI is missing");
-    usage();
+    echo $ciCLI->usage();
     die();
 }
 if (isset($options['verbose'])) {
