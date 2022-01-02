@@ -1,11 +1,12 @@
 # CI-Machine
 
-CI-Machine is a sandboxed environment for PHP Continuous Integration.
+CI-Machine is a sandbox environment for PHP Continuous Integration.
 
 ### Requirement
 
-* PHP 8.1
-* [tivins/php-common](https://github.com/tivins/php-common)
+* PHP >= 8.1
+  * ext-simplexml
+* [tivins/php-common](https://github.com/tivins/php-common) *(via composer)*
 * [docker](https://www.docker.com/)
 
 ## Usage
@@ -19,9 +20,11 @@ CI-Machine is a sandboxed environment for PHP Continuous Integration.
         -h, --help                  Display this help.
         -v, --verbose <mode>        Verbose level : 
                                     0 (NONE), 1 (DANGER), 2 (WARNING), 3 (SUCCESS), 4 (INFO), 5 (DEBUG).
+        -o, --output <directory>    Define the output directory. The tag `[uid]` will be replaced by location ID.
+                                    Default is "/tmp/cim/[uid]".
 
     Machine options (build-time) :
-        -p, --php <phpvers>         PHP version, ex: "8.1" or "latest". Default is "lastest".
+        -p, --php <phpvers>         PHP version, ex: "8.1" or "latest". Default is "latest".
                                     See https://hub.docker.com/_/php?tab=tags&page=1&name=fpm
         
     Repository options (run-time) :

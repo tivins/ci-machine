@@ -4,7 +4,7 @@ namespace Tivins\CIMachine;
 
 use Tivins\Core\Log\Level;
 
-class CICli
+class CLI
 {
     public function usage(): string
     {
@@ -23,9 +23,11 @@ class CICli
         -h, --help                  Display this help.
         -v, --verbose <mode>        Verbose level : 
                                     $cases.
+        -o, --output <directory>    Define the output directory. The tag `[uid]` will be replaced by location ID.
+                                    Default is "/tmp/cim/[uid]".
 
     Machine options (build-time) :
-        -p, --php <phpvers>         PHP version, ex: "8.1" or "latest". Default is "lastest".
+        -p, --php <phpvers>         PHP version, ex: "8.1" or "latest". Default is "latest".
                                     See https://hub.docker.com/_/php?tab=tags&page=1&name=fpm
         
     Repository options (run-time) :

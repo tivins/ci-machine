@@ -9,24 +9,24 @@ use Tivins\Core\System\FileSys;
 
 class CIMachine
 {
-    public const ROOT_DIR = '/box';
-    public const CLONE_DIR = self::ROOT_DIR . '/clone';
+    public const ROOT_DIR   = '/box';
+    public const CLONE_DIR  = self::ROOT_DIR . '/clone';
     public const PHP_LATEST = '8.1';
 
     public readonly string $uid;
-    private string $phpVersion = self::PHP_LATEST;
-    private Mount $volume;
-    private GitLocation $location;
-    private string $backupDirectory = '/tmp/cim/[uid]';
-    private array $history = [];
-    private ?Logger $logger = null;
+    private string         $phpVersion      = self::PHP_LATEST;
+    private Mount          $volume;
+    private GitLocation    $location;
+    private string         $backupDirectory = '/tmp/cim/[uid]';
+    private array          $history         = [];
+    private ?Logger        $logger          = null;
 
 
     public function __construct(GitLocation $location)
     {
-        $this->uid = 'ci_' . sha1(json_encode([$location, microtime(true)]));
+        $this->uid      = 'ci_' . sha1(json_encode([$location, microtime(true)]));
         $this->location = $location;
-        $this->volume = new Mount($this->uid, self::ROOT_DIR);
+        $this->volume   = new Mount($this->uid, self::ROOT_DIR);
     }
 
     public function getRealOutDir(): string
@@ -75,6 +75,12 @@ class CIMachine
         $this->runCommand($this->dockerRunCommand($command, $workDir));
     }
 
+    /**
+     * Return a "docker build" command.
+     *
+     * Schema
+     *      docker build --build-arg [args] -t [tag] -f [Dockerfile] .
+     */
     public function dockerBuildCommand(): Command
     {
         $command = new Command('docker', 'build');
@@ -86,22 +92,25 @@ class CIMachine
     }
 
     /**
-     * Run a Docker run command
+     * Run a "docker run" command.
      *
-     * docker run -it --rm --name [name] [tag] <command>
+     * Schema
+     *      docker run -it --rm --name [name] [tag] <command>
      *
-     * @param Command $runCommand
-     * @param string|null $workDir
-     * @param Command|null $extra
-     * @return Command
+     * @param Command $runCommand The command to run inside the container.
+     * @param string|null $workDir The working directory to run the command.
+     * @param Command|null $extra Extraneous command for "docker run".
+     * @return Command The command to run.
      */
     public function dockerRunCommand(Command $runCommand, ?string $workDir = null, ?Command $extra = null): Command
     {
-        $tag = $this->getTagName();
+        $tag     = $this->getTagName();
         $command = new Command('docker', 'run');
         $command->add('--rm');
         $command->add('--name', "run$tag");
-        if ($workDir) $command->add('--workdir', $workDir);
+        if ($workDir) {
+            $command->add('--workdir', $workDir);
+        }
         $command->addCommand($extra);
         $command->addCommand($this->volume->getRunCommand());
         $command->add($tag);
@@ -109,11 +118,19 @@ class CIMachine
         return $command;
     }
 
+    /**
+     * Get the "git clone" command.
+     *
+     * @param int $depth
+     * @return Command
+     */
     public function gitCloneCommand(int $depth = 50): Command
     {
         $cmd = new Command('git', 'clone');
         $cmd->add('-q');
-        $cmd->add('--depth=' . $depth);
+        if ($depth) {
+            $cmd->add('--depth=' . $depth);
+        }
         $cmd->add($this->location->uri);
         if ($this->location->branch != 'default') {
             $cmd->add('-b', $this->location->branch);
@@ -147,9 +164,9 @@ class CIMachine
         FileSys::mkdir($dir);
         $tarCommand = new Command('zip', '-r', '/backup/volume.zip', '/box/');
         $this->runCommand($this->dockerRunCommand($tarCommand, extra: new Command('-v', $dir . ':/backup')));
-        file_put_contents($dir.'/ci-history.json', json_encode($this->history));
-        $this->history=[];
-        file_put_contents($dir.'/ci-config.json', json_encode(get_object_vars($this)));
+        file_put_contents($dir . '/ci-history.json', json_encode($this->history));
+        $this->history = [];
+        file_put_contents($dir . '/ci-config.json', json_encode(get_object_vars($this)));
         // $proc = Proc::run(new Command('tar', '--append', '--file=' . $dir . '/volume.tar', $dir . '/ci-history.json'));
         // $proc = Proc::run(new Command('zip', '-r', $dir . '/volume.zip', $dir . '/ci-history.json'));
         // var_dump($proc->stderr);
@@ -179,7 +196,7 @@ class CIMachine
      */
     public function setPhpVersion(string $phpVersion): CIMachine
     {
-        $this->phpVersion = $phpVersion;
+        $this->phpVersion = $phpVersion == 'latest' ? self::PHP_LATEST : $phpVersion;
         return $this;
     }
 

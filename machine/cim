@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-use Tivins\CIMachine\CICli;
+use Tivins\CIMachine\CLI;
 use Tivins\CIMachine\CIMachine;
 use Tivins\CIMachine\GitLocation;
 use Tivins\Core\Log\CLILogger;
@@ -11,7 +11,8 @@ use Tivins\Core\OptionsArgs;
 
 require __dir__ . '/../vendor/autoload.php';
 
-$ciCLI = new CICli();
+$ciCLI  = new CLI();
+$logger = new CLILogger();
 
 $options = (new OptionsArgs())
     ->add(new OptionArg('u', true, 'uri'))
@@ -19,10 +20,10 @@ $options = (new OptionsArgs())
     ->add(new OptionArg('c', true, 'commit'))
     ->add(new OptionArg('p', true, 'php'))
     ->add(new OptionArg('v', true, 'verbose'))
+    ->add(new OptionArg('o', true, 'output'))
     ->add(new OptionArg('h', long: 'help'))
     ->parse();
 
-$logger = new CLILogger();
 
 if (isset($options['help'])) {
     echo $ciCLI->usage();
@@ -30,23 +31,28 @@ if (isset($options['help'])) {
 }
 
 if (!isset($options['uri'])) {
-    $logger->log(Level::DANGER, "URI is missing");
+    $logger->danger("URI is missing");
     echo $ciCLI->usage();
-    die();
+    exit(1);
 }
+
 if (isset($options['verbose'])) {
     $logger->setLevel(Level::tryFrom($options['verbose']) ?? Level::DANGER);
 }
 
-// -- run
+// -- run --
 
-$location = new GitLocation(
-        $options['uri'],
-        $options['branch'] ?? GitLocation::BRANCH_DEFAULT,
-        $options['commit'] ?? GitLocation::COMMIT_DEFAULT,
-);
-$machine = new CIMachine($location);
+$machine = new CIMachine(new GitLocation(
+    uri:    $options['uri'],
+    branch: $options['branch'] ?? GitLocation::BRANCH_DEFAULT,
+    commit: $options['commit'] ?? GitLocation::COMMIT_DEFAULT,
+));
 $machine->setLogger($logger);
-$machine->setPhpVersion($options['php'] ?? CIMachine::PHP_LATEST);
+if (isset($options['php'])) {
+    $machine->setPhpVersion($options['php']);
+}
+if (isset($options['verbose'])) {
+    $machine->setBackupDirectory('/tmp/cim/[uid]');
+}
 $machine->runBackupClose();
 $logger->info($machine->getRealOutDir());

@@ -10,7 +10,8 @@
   ],
   "require": {
     "php": "^8.1",
-    "tivins/php-common": "dev-main"
+    "tivins/php-common": "dev-main",
+    "ext-simplexml": "*"
   },
   "autoload": {
     "psr-4": {
