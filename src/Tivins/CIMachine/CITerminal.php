@@ -4,7 +4,7 @@ namespace Tivins\CIMachine;
 
 use Tivins\Core\Log\Level;
 
-class CLI
+class CITerminal
 {
     public function usage(): string
     {

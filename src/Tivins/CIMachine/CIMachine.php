@@ -56,7 +56,7 @@ class CIMachine
         $this->removeVolume();
     }
 
-    public function runBackupClose()
+    public function doRunBackupClose()
     {
         $this->run();
         $this->logger?->info('Backup...');

@@ -1,7 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-use Tivins\CIMachine\CLI;
+use Tivins\CIMachine\CITerminal;
 use Tivins\CIMachine\CIMachine;
 use Tivins\CIMachine\GitLocation;
 use Tivins\Core\Log\CLILogger;
@@ -11,7 +11,7 @@ use Tivins\Core\OptionsArgs;
 
 require __dir__ . '/../vendor/autoload.php';
 
-$ciCLI  = new CLI();
+$ciCLI  = new CITerminal();
 $logger = new CLILogger();
 
 $options = (new OptionsArgs())
@@ -41,12 +41,12 @@ if (isset($options['verbose'])) {
 }
 
 // -- run --
-
-$machine = new CIMachine(new GitLocation(
+$location = new GitLocation(
     uri:    $options['uri'],
     branch: $options['branch'] ?? GitLocation::BRANCH_DEFAULT,
     commit: $options['commit'] ?? GitLocation::COMMIT_DEFAULT,
-));
+);
+$machine = new CIMachine($location);
 $machine->setLogger($logger);
 if (isset($options['php'])) {
     $machine->setPhpVersion($options['php']);
@@ -54,5 +54,5 @@ if (isset($options['php'])) {
 if (isset($options['verbose'])) {
     $machine->setBackupDirectory('/tmp/cim/[uid]');
 }
-$machine->runBackupClose();
+$machine->doRunBackupClose();
 $logger->info($machine->getRealOutDir());
