@@ -11,5 +11,5 @@ CI-Machine is a sandboxed environment for PHP Continuous Integration.
 ## Usage
 
 ```shell
-{{ cimUsage }}
+{!cimUsage!}
 ```
