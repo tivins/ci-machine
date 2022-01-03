@@ -13,46 +13,28 @@ require __dir__ . '/../vendor/autoload.php';
 
 $ciCLI  = new CITerminal();
 $logger = new CLILogger();
+$logger->setLevel(Level::tryFrom($ciCLI->getOption('verbose', Level::DANGER->value)));
 
-$options = (new OptionsArgs())
-    ->add(new OptionArg('u', true, 'uri'))
-    ->add(new OptionArg('b', true, 'branch'))
-    ->add(new OptionArg('c', true, 'commit'))
-    ->add(new OptionArg('p', true, 'php'))
-    ->add(new OptionArg('v', true, 'verbose'))
-    ->add(new OptionArg('o', true, 'output'))
-    ->add(new OptionArg('h', long: 'help'))
-    ->parse();
-
-
-if (isset($options['help'])) {
+if ($ciCLI->hasOption('help')) {
     echo $ciCLI->usage();
     exit(0);
 }
 
-if (!isset($options['uri'])) {
+if (! $ciCLI->hasOption('uri')) {
     $logger->danger("URI is missing");
     echo $ciCLI->usage();
     exit(1);
 }
 
-if (isset($options['verbose'])) {
-    $logger->setLevel(Level::tryFrom($options['verbose']) ?? Level::DANGER);
-}
-
-// -- run --
 $location = new GitLocation(
-    uri:    $options['uri'],
-    branch: $options['branch'] ?? GitLocation::BRANCH_DEFAULT,
-    commit: $options['commit'] ?? GitLocation::COMMIT_DEFAULT,
+    $ciCLI->getOption('uri', ''),
+    $ciCLI->getOption('branch', GitLocation::BRANCH_DEFAULT),
+    $ciCLI->getOption('commit', GitLocation::COMMIT_DEFAULT),
 );
-$machine = new CIMachine($location);
+
+$machine  = new CIMachine($location);
 $machine->setLogger($logger);
-if (isset($options['php'])) {
-    $machine->setPhpVersion($options['php']);
-}
-if (isset($options['verbose'])) {
-    $machine->setBackupDirectory('/tmp/cim/[uid]');
-}
+$machine->setPhpVersion($ciCLI->getOption('php', CIMachine::PHP_LATEST));
+$machine->setBackupDirectory($ciCLI->getOption('output', CIMachine::DEFAULT_DIR));
 $machine->doRunBackupClose();
 $logger->info($machine->getRealOutDir());

@@ -17,7 +17,7 @@ class GitLocation implements JsonSerializable
     )
     {
         if (empty($uri)) {
-            throw new InvalidArgumentException('uri cannot be empty');
+            throw new InvalidArgumentException('URI cannot be empty');
         }
     }
 

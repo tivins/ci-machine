@@ -12,12 +12,13 @@ class CIMachine
     public const ROOT_DIR   = '/box';
     public const CLONE_DIR  = self::ROOT_DIR . '/clone';
     public const PHP_LATEST = '8.1';
+    public const DEFAULT_DIR = '/tmp/cim/[uid]';
 
     public readonly string $uid;
     private string         $phpVersion      = self::PHP_LATEST;
     private Mount          $volume;
     private GitLocation    $location;
-    private string         $backupDirectory = '/tmp/cim/[uid]';
+    private string         $backupDirectory = self::DEFAULT_DIR;
     private array          $history         = [];
     private ?Logger        $logger          = null;
 

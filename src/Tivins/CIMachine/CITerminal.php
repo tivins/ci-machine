@@ -3,9 +3,13 @@
 namespace Tivins\CIMachine;
 
 use Tivins\Core\Log\Level;
+use Tivins\Core\OptionArg;
+use Tivins\Core\OptionsArgs;
 
-class CITerminal
+class CITerminal extends OptionsArgs
 {
+    private array $options = [];
+
     public function usage(): string
     {
         $cases = [];
@@ -41,5 +45,26 @@ class CITerminal
 
 
 EOF;
+    }
+
+    public function __construct()
+    {
+        $this->options = $this
+            ->add(new OptionArg('u', true, 'uri'))
+            ->add(new OptionArg('b', true, 'branch'))
+            ->add(new OptionArg('c', true, 'commit'))
+            ->add(new OptionArg('p', true, 'php'))
+            ->add(new OptionArg('v', true, 'verbose'))
+            ->add(new OptionArg('o', true, 'output'))
+            ->add(new OptionArg('h', long: 'help'))
+            ->parse();
+    }
+
+    public function getOption(string $name, mixed $default = null): mixed {
+        return $this->options[$name] ?? $default;
+    }
+    public function hasOption(string $name): bool
+    {
+        return isset($this->options[$name]);
     }
 }
