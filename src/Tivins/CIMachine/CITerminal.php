@@ -60,9 +60,11 @@ EOF;
             ->parse();
     }
 
-    public function getOption(string $name, mixed $default = null): mixed {
+    public function getOption(string $name, mixed $default = null): mixed
+    {
         return $this->options[$name] ?? $default;
     }
+
     public function hasOption(string $name): bool
     {
         return isset($this->options[$name]);

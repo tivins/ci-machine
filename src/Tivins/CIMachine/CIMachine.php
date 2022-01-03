@@ -5,6 +5,7 @@ namespace Tivins\CIMachine;
 use Tivins\Core\Proc\Command;
 use Tivins\Core\Log\Logger;
 use Tivins\Core\Proc\Proc;
+use Tivins\Core\Proc\ProcBackground;
 use Tivins\Core\System\FileSys;
 
 class CIMachine
@@ -68,7 +69,9 @@ class CIMachine
     private function runCommand(Command $command): Proc
     {
         $this->logger->debug(__function__, $command->get());
-        return $this->history[] = Proc::run($command);
+        $hook = new ProcBackground(substr(implode(' ', $command->get()),0, 25));
+        $hook->setCallbackFrequency(100000);
+        return $this->history[] = Proc::run($command, $hook);
     }
 
     private function runDockerCommand(Command $command, ?string $workDir = null): void

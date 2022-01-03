@@ -16,6 +16,7 @@ class GitLocation implements JsonSerializable
         public string $commit = self::COMMIT_DEFAULT,
     )
     {
+        $this->uri = trim($this->uri);
         if (empty($uri)) {
             throw new InvalidArgumentException('URI cannot be empty');
         }
