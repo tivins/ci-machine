@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/tivins/php-common.git",
-                "reference": "3e7ccbcaaee7fec672e5972d6dbfeea1a4dc0f71"
+                "reference": "8357c11ce756c2a96d20a8ece251b59257bf767c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/tivins/php-common/zipball/3e7ccbcaaee7fec672e5972d6dbfeea1a4dc0f71",
-                "reference": "3e7ccbcaaee7fec672e5972d6dbfeea1a4dc0f71",
+                "url": "https://api.github.com/repos/tivins/php-common/zipball/8357c11ce756c2a96d20a8ece251b59257bf767c",
+                "reference": "8357c11ce756c2a96d20a8ece251b59257bf767c",
                 "shasum": ""
             },
             "require": {
@@ -49,7 +49,7 @@
                 "issues": "https://github.com/tivins/php-common/issues",
                 "source": "https://github.com/tivins/php-common/tree/main"
             },
-            "time": "2022-01-03T22:33:00+00:00"
+            "time": "2022-01-04T22:11:04+00:00"
         }
     ],
     "packages-dev": [],

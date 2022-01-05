@@ -4,8 +4,8 @@ namespace Tivins\CIMachine;
 
 use Tivins\Core\Proc\Command;
 use Tivins\Core\Log\Logger;
-use Tivins\Core\Proc\Proc;
 use Tivins\Core\Proc\ProcBackground;
+use Tivins\Core\Proc\ProcInfo;
 use Tivins\Core\System\FileSys;
 
 class CIMachine
@@ -38,17 +38,15 @@ class CIMachine
 
     public function run()
     {
-        $this->logger?->info("Building image...");
         $this->runCommand($this->dockerBuildCommand());
-        $this->runDockerCommand(new Command('php', '-v'));
-        $this->runDockerCommand(new Command('composer', '--version'));
-        $this->logger?->info('Clone repository...');
+        // $this->runDockerCommand(new NamedCommand('service mariadb start', 'service','mariadb','start'));
+        $this->runDockerCommand(new NamedCommand('mysql version', 'mysql', '-v'));
+        $this->runDockerCommand(new NamedCommand('PHP version', 'php', '-v'));
+        $this->runDockerCommand(new NamedCommand('Composer version', 'composer', '--version'));
         $this->runDockerCommand($this->gitCloneCommand());
-        $this->runDockerCommand(new Command('cp', '-r', 'clone', 'repository'));
-        $this->runDockerCommand(new Command('git', 'status'), self::CLONE_DIR);
-        $this->logger?->info('Install composer...');
-        $this->runDockerCommand(new Command('composer', 'install', '--no-interaction'), self::CLONE_DIR);
-        $this->logger?->info('Run tests...');
+        $this->runDockerCommand(new NamedCommand('Copy original repository', 'cp', '-r', 'clone', 'repository'));
+        $this->runDockerCommand(new NamedCommand('Git status', 'git', 'status'), self::CLONE_DIR);
+        $this->runDockerCommand(new NamedCommand('Composer install project', 'composer', 'install', '-q', '--no-interaction'), self::CLONE_DIR);
         $this->runDockerCommand($this->getPHPUnitCommand(), self::CLONE_DIR);
     }
 
@@ -66,16 +64,18 @@ class CIMachine
         $this->close();
     }
 
-    private function runCommand(Command $command): Proc
+    private function runCommand(NamedCommand $command): ProcInfo
     {
         $this->logger->debug(__function__, $command->get());
-        $hook = new ProcBackground(substr(implode(' ', $command->get()),0, 25));
-        $hook->setCallbackFrequency(100000);
-        return $this->history[] = Proc::run($command, $hook);
+        $proc = new ProcBackground($command->name);
+        $proc->setShowStdout(true);
+        $proc->setShowStderr(true);
+        return $this->history[] = $proc->run($command, 100000);
     }
 
-    private function runDockerCommand(Command $command, ?string $workDir = null): void
+    private function runDockerCommand(NamedCommand $command, ?string $workDir = null): void
     {
+        $command->name = '[container] ' . $command->name;
         $this->runCommand($this->dockerRunCommand($command, $workDir));
     }
 
@@ -85,9 +85,9 @@ class CIMachine
      * Schema
      *      docker build --build-arg [args] -t [tag] -f [Dockerfile] .
      */
-    public function dockerBuildCommand(): Command
+    public function dockerBuildCommand(): NamedCommand
     {
-        $command = new Command('docker', 'build');
+        $command = new NamedCommand('Build image', 'docker', 'build');
         $command->add('--build-arg', "PHP=$this->phpVersion");
         $command->add('-t', $this->getTagName());
         $command->add('-f', 'Dockerfile');
@@ -101,15 +101,15 @@ class CIMachine
      * Schema
      *      docker run -it --rm --name [name] [tag] <command>
      *
-     * @param Command $runCommand The command to run inside the container.
+     * @param NamedCommand $runCommand The command to run inside the container.
      * @param string|null $workDir The working directory to run the command.
      * @param Command|null $extra Extraneous command for "docker run".
-     * @return Command The command to run.
+     * @return NamedCommand The command to run.
      */
-    public function dockerRunCommand(Command $runCommand, ?string $workDir = null, ?Command $extra = null): Command
+    public function dockerRunCommand(NamedCommand $runCommand, ?string $workDir = null, ?Command $extra = null): NamedCommand
     {
         $tag     = $this->getTagName();
-        $command = new Command('docker', 'run');
+        $command = new NamedCommand($runCommand->name, 'docker', 'run');
         $command->add('--rm');
         $command->add('--name', "run$tag");
         if ($workDir) {
@@ -126,11 +126,12 @@ class CIMachine
      * Get the "git clone" command.
      *
      * @param int $depth
-     * @return Command
+     * @return NamedCommand
      */
-    public function gitCloneCommand(int $depth = 50): Command
+    public function gitCloneCommand(int $depth = 50): NamedCommand
     {
-        $cmd = new Command('git', 'clone');
+        $cmd = new NamedCommand('Clone repository',
+            'git', 'clone');
         $cmd->add('-q');
         if ($depth) {
             $cmd->add('--depth=' . $depth);
@@ -144,11 +145,11 @@ class CIMachine
     }
 
     /**
-     * @return Command
+     * @return NamedCommand
      */
-    public function getPHPUnitCommand(): Command
+    public function getPHPUnitCommand(): NamedCommand
     {
-        return (new Command('vendor/bin/phpunit'))
+        return (new NamedCommand('Unit tests', 'vendor/bin/phpunit'))
             ->add('--log-teamcity', '/box/phpunit-logs')
             ->add('--coverage-clover', '/box/clover.xml')
             ->add('--teamcity');
@@ -156,17 +157,17 @@ class CIMachine
 
     public function volumeInspect(): string
     {
-        $proc = $this->runCommand(new Command('docker', 'inspect', $this->getVolume()->name));
+        $proc = $this->runCommand(new NamedCommand('Inspect volume', 'docker', 'inspect', $this->getVolume()->name));
         return $proc->stdout;
     }
 
     private function backup()
     {
-        $this->runDockerCommand(new Command('rm', '-rf', self::CLONE_DIR));
+        $this->runDockerCommand(new NamedCommand('Delete git clone','rm', '-rf', self::CLONE_DIR));
         $dir = $this->getRealOutDir();
 
         FileSys::mkdir($dir);
-        $tarCommand = new Command('zip', '-r', '/backup/volume.zip', '/box/');
+        $tarCommand = new NamedCommand('Export volume', 'zip', '-r', '/backup/volume.zip', '/box/');
         $this->runCommand($this->dockerRunCommand($tarCommand, extra: new Command('-v', $dir . ':/backup')));
         file_put_contents($dir . '/ci-history.json', json_encode($this->history));
         $this->history = [];
@@ -178,7 +179,7 @@ class CIMachine
 
     public function removeVolume()
     {
-        $this->runCommand(new Command('docker', 'volume', 'rm', $this->volume->name));
+        $this->runCommand(new NamedCommand('Remove volume', 'docker', 'volume', 'rm', $this->volume->name));
     }
 
     public function getTagName(): string
