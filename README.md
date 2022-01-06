@@ -25,9 +25,13 @@ CI-Machine is a sandbox environment for PHP Continuous Integration.
         --verbose, -v <mode>            Verbose level : 
                                         0 (NONE), 1 (DANGER), 2 (WARNING), 3 (SUCCESS), 4 (INFO), 5 (DEBUG).
 
+    Output options : 
+    
         --output, -o <directory>        Define the output directory. 
                                         The tag `[uid]` will be replaced by location ID.
                                         Default is "/tmp/cim/[uid]".
+                                        
+        --compress                      Build a .tar.gz instead of separated files.
 
     Input options :
 
@@ -63,8 +67,8 @@ CI-Machine is a sandbox environment for PHP Continuous Integration.
         cim --uri https://github.com/tivins/ci-example-1.git --php "8.1" --branch "test-php-8-1"
         
         cim --uri https://github.com/tivins/database.git \
-            --php "7.3" --php-modules="pdo" --php-modules-dis="mysqli" \
-            --database mysql --db-version "7"
+            --php "7.3.22" --php-modules="pdo" --php-modules-dis="mysqli" \
+            --database "mysql" --db-version "7"
             
         # configuration from local file
         cim --file /path/to/ci-project.json
@@ -75,5 +79,27 @@ CI-Machine is a sandbox environment for PHP Continuous Integration.
         # configuration from remote file
         cim --file https://example.com/git/ci-project.json
 
+    Output :
+    
+        out/
+        └── build_id                # fingerprint from input + config.
+            ├── ci-config.json      # host configuration.
+            ├── ci-history.json     # processes output (stdout, stderr).
+            ├── ci-input.json       # input data.
+            ├── clover.xml          # coverage report.
+            ├── phpunit-logs        # phpunit report.
+            └── repository          # clean repository (clone only).
+
+    Configuration file :
+    
+    env:
+    jobs:
+      - job01:
+        php:
+          version: "8.1"
+          modules: "xdebug,pdo"
+        db:
+          type: "mysql"
+          version: "latest"
 
 ```
