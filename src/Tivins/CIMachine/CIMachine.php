@@ -12,7 +12,7 @@ class CIMachine
 {
     public const ROOT_DIR   = '/box';
     public const CLONE_DIR  = self::ROOT_DIR . '/clone';
-    public const PHP_LATEST = '8.1';
+    public const PHP_LATEST = '8.1.1';
     public const DEFAULT_DIR = '/tmp/cim/[uid]';
 
     public readonly string $uid;
@@ -38,22 +38,39 @@ class CIMachine
 
     public function run()
     {
-        $this->runCommand($this->dockerBuildCommand());
-        // $this->runDockerCommand(new NamedCommand('service mariadb start', 'service','mariadb','start'));
-        $this->runDockerCommand(new NamedCommand('mysql version', 'mysql', '-v'));
-        $this->runDockerCommand(new NamedCommand('PHP version', 'php', '-v'));
-        $this->runDockerCommand(new NamedCommand('Composer version', 'composer', '--version'));
+        putenv('CI_ENV_PHP=' . $this->phpVersion);
+        putenv('CI_UID=' . $this->uid);
+        //
+        //
+        //
+        $this->runCommand(new NamedCommand('Docker clean volumes', 'docker','system','prune','-f'));
+        //
+        //
+        //
+
+        $this->runCommand(new NamedCommand('Docker config',
+            'docker', 'compose', 'config'));
+        $this->runCommand(new NamedCommand('Docker compose up',
+            'docker', 'compose', 'up', '--remove-orphans', '--build', '-d'));
+        sleep(1);
+        $this->runCommand(new NamedCommand('Docker exec test.php',
+            'docker', 'exec', 'php_' . $this->uid, 'php', '/test.php'));
+
         $this->runDockerCommand($this->gitCloneCommand());
         $this->runDockerCommand(new NamedCommand('Copy original repository', 'cp', '-r', 'clone', 'repository'));
-        $this->runDockerCommand(new NamedCommand('Git status', 'git', 'status'), self::CLONE_DIR);
         $this->runDockerCommand(new NamedCommand('Composer install project', 'composer', 'install', '-q', '--no-interaction'), self::CLONE_DIR);
         $this->runDockerCommand($this->getPHPUnitCommand(), self::CLONE_DIR);
+        $this->runDockerCommand(new NamedCommand('mysql version', 'mysql', '-v'));
+        $this->runDockerCommand(new NamedCommand('PHP version', 'php', '-v'));
+        $this->runDockerCommand(new NamedCommand('Git status', 'git', 'status'), self::CLONE_DIR);
+        putenv('CI_UID'); // unset
+        putenv('CI_ENV_PHP'); // unset
     }
 
     public function close()
     {
         $this->logger?->info('Closing...');
-        $this->removeVolume();
+        // $this->removeVolume();
     }
 
     public function doRunBackupClose()
@@ -70,6 +87,7 @@ class CIMachine
         $proc = new ProcBackground($command->name);
         $proc->setShowStdout(true);
         $proc->setShowStderr(true);
+        echo implode(' ', $command->get()), PHP_EOL;
         return $this->history[] = $proc->run($command, 100000);
     }
 
@@ -109,15 +127,12 @@ class CIMachine
     public function dockerRunCommand(NamedCommand $runCommand, ?string $workDir = null, ?Command $extra = null): NamedCommand
     {
         $tag     = $this->getTagName();
-        $command = new NamedCommand($runCommand->name, 'docker', 'run');
-        $command->add('--rm');
-        $command->add('--name', "run$tag");
+        $command = new NamedCommand($runCommand->name, 'docker', 'exec');
         if ($workDir) {
+        var_dump($workDir);
             $command->add('--workdir', $workDir);
         }
-        $command->addCommand($extra);
-        $command->addCommand($this->volume->getRunCommand());
-        $command->add($tag);
+        $command->add('php_' . $this->uid);
         $command->addCommand($runCommand);
         return $command;
     }
@@ -166,12 +181,13 @@ class CIMachine
         $this->runDockerCommand(new NamedCommand('Delete git clone','rm', '-rf', self::CLONE_DIR));
         $dir = $this->getRealOutDir();
 
-        FileSys::mkdir($dir);
-        $tarCommand = new NamedCommand('Export volume', 'zip', '-r', '/backup/volume.zip', '/box/');
-        $this->runCommand($this->dockerRunCommand($tarCommand, extra: new Command('-v', $dir . ':/backup')));
-        file_put_contents($dir . '/ci-history.json', json_encode($this->history));
-        $this->history = [];
-        file_put_contents($dir . '/ci-config.json', json_encode(get_object_vars($this)));
+        // FileSys::mkdir($dir);
+        // $tarCommand = new NamedCommand('Export volume', 'zip', '-r', '/backup/volume.zip', '/box/');
+        // $this->runCommand($this->dockerRunCommand($tarCommand, extra: new Command('-v', $dir . ':/backup')));
+
+        file_put_contents('tmp/ci-history.json', json_encode($this->history));
+        $this->history = []; // before ci-config
+        file_put_contents('tmp/ci-config.json', json_encode(get_object_vars($this)));
         // $proc = Proc::run(new Command('tar', '--append', '--file=' . $dir . '/volume.tar', $dir . '/ci-history.json'));
         // $proc = Proc::run(new Command('zip', '-r', $dir . '/volume.zip', $dir . '/ci-history.json'));
         // var_dump($proc->stderr);

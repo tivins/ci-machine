@@ -1,40 +1,24 @@
 ARG PHP
 
-FROM ubuntu:latest
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=Europe/PARIS
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+FROM php:${PHP}-fpm
 
-# COPY script.php /script
+RUN apt-get update && apt install -y --no-install-recommends \
+    libzip-dev zip unzip git libmagickwand-dev libonig-dev
 
-RUN apt update ; apt install -y --no-install-recommends \
-    zip unzip \
-    mariadb-server \
-    mariadb-client \
-    libsodium-dev \
-    libzip-dev \
-    curl \
-    rsync \
-    git \
-    software-properties-common
-
-#RUN apt install apt install -y lsb-release ca-certificates apt-transport-https software-properties-common gnupg2
-RUN add-apt-repository ppa:ondrej/php
-RUN apt install -y php8.1-dev php-pear
-
-RUN pecl install xdebug && \
-    docker-php-ext-enable xdebug
-
-RUN docker-php-ext-install pdo_mysql
-
-CMD ls -al /run/mysqld/mysqld.sock
-RUN service mariadb start
+RUN pecl install xdebug imagick \
+    && docker-php-ext-enable xdebug imagick \
+    && docker-php-ext-install pdo_mysql mbstring zip gd
 
 # Composer
-ENV COMPOSER_ALLOW_SUPERUSER=1
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer --version
 
-COPY php.ini /usr/local/etc/php/conf.d/zcover.ini
+
+RUN echo "xdebug.mode=coverage" > /usr/local/etc/php/conf.d/xdebug.ini
+COPY test.php /test.php
+
+# Create user (UID/GID:1000)
+RUN useradd -ms /bin/bash admin && echo "admin:admin" | chpasswd
+USER admin
 
 WORKDIR /box

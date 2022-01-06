@@ -1,2 +1,8 @@
+# composer
 /vendor/
+
+# ide
 /.idea
+
+# tmp
+/machine/old/

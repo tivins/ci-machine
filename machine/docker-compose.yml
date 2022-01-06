@@ -1,0 +1,27 @@
+version: '3.9'
+
+networks:
+  dev:
+
+services:
+  db:
+    image: mysql:latest
+    container_name: db_${CI_UID}
+    command: --default-authentication-plugin=mysql_native_password
+    networks: ["dev"]
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - MYSQL_DATABASE=database
+      - MYSQL_USER=admin
+      - MYSQL_PASSWORD=adminpass
+  php:
+    build:
+      context: .
+      args:
+        PHP: ${CI_ENV_PHP}
+    container_name: php_${CI_UID}
+    networks: ["dev"]
+    volumes:
+      - ./tmp:/box
+    depends_on:
+      - db
