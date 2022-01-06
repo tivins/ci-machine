@@ -6,13 +6,12 @@ use Tivins\CIMachine\CIMachine;
 use Tivins\CIMachine\GitLocation;
 use Tivins\Core\Log\CLILogger;
 use Tivins\Core\Log\Level;
-use Tivins\Core\OptionArg;
-use Tivins\Core\OptionsArgs;
 
 require __dir__ . '/../vendor/autoload.php';
 
 $ciCLI  = new CITerminal();
 $logger = new CLILogger();
+
 $logger->setLevel(Level::tryFrom($ciCLI->getOption('verbose', Level::DANGER->value)));
 
 if ($ciCLI->hasOption('help')) {

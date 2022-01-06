@@ -16,7 +16,7 @@ services:
       - MYSQL_PASSWORD=adminpass
   php:
     build:
-      context: .
+      context: docker
       args:
         PHP: ${CI_ENV_PHP}
     container_name: php_${CI_UID}
