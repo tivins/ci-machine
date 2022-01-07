@@ -1,18 +1,41 @@
 <?php
 
+/*
+ * Usage:
+ *      php dockertest.php | docker build -
+ *    
+ * use Tivins\CIMachine\DockerFile;
+ * require 'vendor/autoload.php';
+ * $dockerFile = new DockerFile();
+ * $dockerFile->setPHPVersion('8.1');
+ * $dockerFile->setPHPVersion('7.3');
+ * $dockerFile->addPHPExtension('xdebug');
+ * $dockerFile->addPHPExtension('imagick');
+ * $dockerFile->addPHPExtension('intl');
+ * $dockerFile->addPHPExtension('zip');
+ * $dockerFile->addPHPExtension('json');
+ * echo $dockerFile;
+ */
 namespace Tivins\CIMachine;
 
-enum PHPModules: string
+enum PHPExtension: string
 {
+    case XDEBUG = 'xdebug';
+    case IMAGICK = 'imagick';
+    case MBSTRING = 'mbstring';
+    case ZIP = 'zip';
+    case GD = 'gd';
+    case INTL = 'intl';
+    case JSON = 'json';
 }
 
 class DockerFile
 {
-    private string $phpVersion        = 'latest';
-    private array  $phpModulesEnabled = [];
-    private bool   $databaseEnabled   = false;
-    private string $databaseServer    = 'mysql';
-    private string $databaseVersion   = 'latest';
+    private string $phpVersion = 'latest';
+    private array $phpModulesEnabled = [];
+    private bool $databaseEnabled = false;
+    private string $databaseServer = 'mysql';
+    private string $databaseVersion = 'latest';
 
     private array $ext = [
         'peclInstall' => [],
@@ -26,40 +49,41 @@ class DockerFile
     {
     }
 
-    public function setPHPVersion(string $version): void
+    public function setPHPVersion(string $version): static
     {
         $this->phpVersion = $version;
+        return $this;
     }
 
-    public function addPHPExtension(string $name): bool
+    public function addPHPExtension(PHPExtension $name): static
     {
         switch ($name) {
-            case 'xdebug':
+            case PHPExtension::XDEBUG:
                 $this->ext['peclInstall'][] = 'xdebug';
-                $this->ext['extEnable'][]   = 'xdebug';
+                $this->ext['extEnable'][] = 'xdebug';
                 break;
-            case 'imagick':
-                $this->ext['libs'][]        = 'libmagickwand-dev';
+            case PHPExtension::IMAGICK:
+                $this->ext['libs'][] = 'libmagickwand-dev';
                 $this->ext['peclInstall'][] = 'imagick';
-                $this->ext['extEnable'][]   = 'imagick';
+                $this->ext['extEnable'][] = 'imagick';
                 break;
-            case 'mbstring':
+            case PHPExtension::MBSTRING:
                 $this->ext['extInstall'][] = 'mbstring';
                 break;
-            case 'zip':
+            case PHPExtension::ZIP:
+                $this->ext['libs'][] = 'libzip-dev';
                 $this->ext['extInstall'][] = 'zip';
                 break;
-            case 'gd':
+            case PHPExtension::GD;
                 $this->ext['extInstall'][] = 'gd';
                 break;
-            case 'intl':
-                $this->ext['extConfig'][]  = 'intl';
+            case PHPExtension::INTL:
+                $this->ext['libs'][] = 'libicu-dev';
+                $this->ext['extConfig'][] = 'intl';
                 $this->ext['extInstall'][] = 'intl';
                 break;
-            default:
-                return false;
         }
-        return true;
+        return $this;
     }
 
     function getFingerPrint(): string
@@ -69,14 +93,19 @@ class DockerFile
 
     public function __toString(): string
     {
-        $body = "FROM: FROM php:{$this->phpVersion}-fpm\n";
-        $body .= "RUN apt-get update && apt install -y --no-install-recommends \\";
-        $body .= implode(' ', $this->ext['libs']) . "\n";
-        $body .= "RUN pecl install {$this->ext['peclInstall']} \\\n"
-            . "    && docker-php-ext-configure {$this->ext['extConfig']} \\\n"
-            . "    && docker-php-ext-enable {$this->ext['extEnable']} \\\n"
-            . "    && docker-php-ext-install {$this->ext['extInstall']} \\\n"
-            . "\n\n";
+        $body = '';
+        $body .= '# ' . str_repeat('-', 78) . "\n";
+        $body .= "# Dockerfile generated on " . gmdate('c') . "\n";
+        $body .= "# Fingerprint : " . $this->getFingerPrint() . "\n";
+        $body .= '# ' . str_repeat('-', 78) . "\n";
+        $body .= "\n";
+
+        $body .= "FROM php:{$this->phpVersion}-fpm\n\n";
+
+        $body .= "# Update and install\n";
+        $body .= "RUN apt-get update" . (!empty($this->ext['libs']) ? ' && apt install -y --no-install-recommends ' . implode(' ', $this->ext['libs']) . "\n" : '') . "\n\n";
+
+        $body .= $this->installPHPDeps();
 
         $body .= "# Setup xdebug for code coverage\n";
         $body .= "RUN echo 'xdebug.mode=coverage' > /usr/local/etc/php/conf.d/xdebug.ini\n\n";
@@ -90,11 +119,34 @@ class DockerFile
         return $body;
     }
 
-    public function addComposer(): string
+    private function installPHPDeps(): string
+    {
+        $directives = [];
+        if (!empty($this->ext['peclInstall'])) {
+            $directives[] = 'pecl install ' . implode(' ', $this->ext['peclInstall']);
+        }
+        if (!empty($this->ext['extConfig'])) {
+            $directives[] = 'docker-php-ext-configure ' . implode(' ', $this->ext['extConfig']);
+        }
+        if (!empty($this->ext['extEnable'])) {
+            $directives[] = 'docker-php-ext-enable ' . implode(' ', $this->ext['extEnable']);
+        }
+        if (!empty($this->ext['extInstall'])) {
+            $directives[] = 'docker-php-ext-install ' . implode(' ', $this->ext['extInstall']);
+        }
+        if (empty($directives)) {
+            return '';
+        }
+        return "# PHP extensions\n"
+            . 'RUN ' . implode(" \\ \n    && ", $directives) . "\n\n";
+    }
+
+    private function addComposer(): string
     {
         return "# Composer\n"
             . 'RUN curl -sS https://getcomposer.org/installer | '
             . 'php -- --install-dir=/usr/local/bin --filename=composer' . "\n"
-            . 'RUN composer --version' . "\n\n";
+            // . 'RUN composer --version' . "\n"
+            . "\n";
     }
 }

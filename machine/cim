@@ -34,6 +34,6 @@ $location = new GitLocation(
 $machine  = new CIMachine($location);
 $machine->setLogger($logger);
 $machine->setPhpVersion($ciCLI->getOption('php', CIMachine::PHP_LATEST));
-$machine->setBackupDirectory($ciCLI->getOption('output', CIMachine::DEFAULT_DIR));
+$machine->setDirectory($ciCLI->getOption('output', CIMachine::DEFAULT_DIR));
 $machine->doRunBackupClose();
 $logger->info($machine->getRealOutDir());

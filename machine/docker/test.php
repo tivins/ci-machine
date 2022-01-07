@@ -4,9 +4,8 @@
  * @file The purpose of this file is to log capabilities of the system.
  *
  * Because it needs to be strictly equals to the requested environment.
- * We will store the most useful data in an array, converted in JSON file.
- *
- * @todo OK. But, what if php_json is not enabled ?
+ * We will store the most useful data in an array, written serialized in
+ * a file.
  *
  */
 
@@ -20,6 +19,7 @@
 $data                  = [];
 $data['containerTime'] = date('c');
 $data['sql']           = tryConnect('database', 'db', 3306, 'admin', 'adminpass');
+$data['php.ini']       = ini_get_all();
 echo($data['php-version'] = "PHP " . PHP_VERSION), PHP_EOL;
 
 tryFunction($data, 'json_encode');
@@ -44,7 +44,7 @@ tryFunction($data, 'PDO', 'class');
 tryFunction($data, 'xdebug', 'extension');
 
 
-file_put_contents('/box/test-info.json', json_encode($data));
+file_put_contents('/box/test-info.json', serialize($data));
 
 function tryFunction(array &$data, $name, $type = 'function')
 {

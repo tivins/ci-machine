@@ -10,34 +10,66 @@ use Tivins\Core\System\FileSys;
 
 class CIMachine
 {
-    public const ROOT_DIR   = '/box';
-    public const CLONE_DIR  = self::ROOT_DIR . '/clone';
-    public const PHP_LATEST = '8.1.1';
-    public const DEFAULT_DIR = '/tmp/cim/[uid]';
+    public const ROOT_DIR           = '/box';
+    public const CLONE_DIR          = self::ROOT_DIR . '/clone';
+    public const PHP_LATEST         = '8.1.1';
+    public const DEFAULT_DIR               = '/tmp/cim/[uid]';
+
+    private const ENV_DOCKERFILE_PHP = '/docker/env/Dockerfile-php';
+    private const ENV_DOCKER_COMPOSE = '/docker/docker-composer.yml';
 
     public readonly string $uid;
-    private string         $phpVersion      = self::PHP_LATEST;
-    private Mount          $volume;
+
+    private string         $phpVersion = self::PHP_LATEST;
+    private string         $databaseType = ''; // mysql
+    private string         $databaseVersion = ''; // latest
+
     private GitLocation    $location;
-    private string         $backupDirectory = self::DEFAULT_DIR;
-    private array          $history         = [];
-    private ?Logger        $logger          = null;
+
+    private Mount          $volume;
+    private DockerCompose  $dockerCompose;
+    private DockerFile     $dockerFile;
+
+    private string         $directory  = self::DEFAULT_DIR;
+    private array          $history    = [];
+    private ?Logger        $logger     = null;
 
 
     public function __construct(GitLocation $location)
     {
-        $this->uid      = 'ci_' . sha1(json_encode([$location, microtime(true)]));
-        $this->location = $location;
-        $this->volume   = new Mount($this->uid, self::ROOT_DIR);
+        $this->uid           = 'ci_' . sha1(json_encode([$location, microtime(true)]));
+        $this->location      = $location;
+        $this->volume        = new Mount($this->uid, self::ROOT_DIR);
+        $this->dockerFile    = new DockerFile();
+        $this->dockerCompose = new DockerCompose($this);
     }
 
     public function getRealOutDir(): string
     {
-        return str_replace('[uid]', $this->uid, $this->backupDirectory);
+        return str_replace('[uid]', $this->uid, $this->directory);
+    }
+
+    private function saveDockerComposeFile(): void
+    {
+        FileSys::writeFile($this->getRealOutDir() . self::ENV_DOCKER_COMPOSE, (string) $this->dockerCompose);
+    }
+
+    private function saveDockerfile(): void
+    {
+        $this->dockerFile->setPHPVersion($this->phpVersion);
+        $this->dockerFile->addPHPExtension(PHPExtension::XDEBUG);
+
+        FileSys::writeFile($this->getRealOutDir() . self::ENV_DOCKERFILE_PHP, (string) $this->dockerFile);
     }
 
     public function run()
     {
+        FileSys::mkdir($this->getRealOutDir());
+        $this->saveDockerfile();
+        $this->saveDockerComposeFile();
+
+        return; // dev-version :)
+
         putenv('CI_ENV_PHP=' . $this->phpVersion);
         putenv('CI_UID=' . $this->uid);
         //
@@ -50,9 +82,12 @@ class CIMachine
 
         $this->runCommand(new NamedCommand('Docker config',
             'docker', 'compose', 'config'));
+
         $this->runCommand(new NamedCommand('Docker compose up',
             'docker', 'compose', 'up', '--remove-orphans', '--build', '-d'));
+
         sleep(1);
+
         $this->runCommand(new NamedCommand('Docker exec test.php',
             'docker', 'exec', 'php_' . $this->uid, 'php', '/test.php'));
 
@@ -63,6 +98,7 @@ class CIMachine
         $this->runDockerCommand(new NamedCommand('mysql version', 'mysql', '-v'));
         $this->runDockerCommand(new NamedCommand('PHP version', 'php', '-v'));
         $this->runDockerCommand(new NamedCommand('Git status', 'git', 'status'), self::CLONE_DIR);
+
         putenv('CI_UID'); // unset
         putenv('CI_ENV_PHP'); // unset
     }
@@ -248,18 +284,18 @@ class CIMachine
     /**
      * @return string
      */
-    public function getBackupDirectory(): string
+    public function getDirectory(): string
     {
-        return $this->backupDirectory;
+        return $this->directory;
     }
 
     /**
-     * @param string $backupDirectory
+     * @param string $directory
      * @return CIMachine
      */
-    public function setBackupDirectory(string $backupDirectory): CIMachine
+    public function setDirectory(string $directory): CIMachine
     {
-        $this->backupDirectory = rtrim($backupDirectory, '/');
+        $this->directory = rtrim($directory, '/');
         return $this;
     }
 
