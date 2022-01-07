@@ -1,0 +1,20 @@
+# Environment variables for the whole compose file.
+env:
+  SomeKey: SomeValue
+
+# List of jobs
+jobs:
+
+  # First job
+  - job01:
+    output: "/tmp/ci/[uid].tar.gz"
+    env:
+      USER_NAME: anonymous
+    php:
+      version: latest
+      modules: pdo
+    database: mysql:latest
+    repo:
+      uri: "https://github.com/tivins/ci-example-1.git"
+      branch: default
+      commit: default
