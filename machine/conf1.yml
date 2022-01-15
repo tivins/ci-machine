@@ -12,7 +12,7 @@ jobs:
       USER_NAME: anonymous
     php:
       version: latest
-      modules: pdo
+      modules: pdo,xdebug
     database: mysql:latest
     repo:
       uri: "https://github.com/tivins/ci-example-1.git"

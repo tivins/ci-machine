@@ -12,17 +12,22 @@ class CITerminal extends OptionsArgs
 
     public function usage(): string
     {
-        $cases = [];
-        foreach (Level::cases() as $case) {
-            $cases[] = "$case->value ($case->name)";
-        }
-        $cases = implode(', ', $cases);
+        $cases = implode(', ' ,
+            array_map(
+                fn(Level $case) => "$case->value ($case->name)",
+                Level::cases()));
+
+        $phpExtensions = implode(', ' ,
+            array_map(
+                fn(PHPExtension $case) => $case->value,
+                PHPExtension::cases()));
 
         return <<<EOF
 
     Usage:
     
         cim --uri <uri> [options]
+        cim --file <uri> [options]
 
     General options :
 
@@ -38,10 +43,16 @@ class CITerminal extends OptionsArgs
                                         Default is "/tmp/cim/[uid]".
                                         
         --compress                      Build a .tar.gz instead of separated files.
+        
+        --docker-registry <host:port>   Specify a registry to save images.
+                                        Default is not set.
 
     Input options :
 
-        --file, -f                      Specify a configuration file. Argument overrides. 
+        --file, -f <file>               Specify a configuration file. Argument overrides. 
+        
+        --env, -e <vars>                Environment variables.
+                                        ex: "DB_NAME=test DB_USER=travis DB_PASS= DB_HOST=127.0.0.1"
 
     Machine options (build-time) :
 
@@ -49,6 +60,7 @@ class CITerminal extends OptionsArgs
                                         See https://hub.docker.com/_/php?tab=tags&page=1&name=fpm
 
         --php-modules <modules>         Coma separated list of required PHP modules.
+                                        Allowed values are : $phpExtensions
                                         Ex: "gd,imagick,pdo"
 
         --php-modules-dis <mods>        Coma separated list of PHP modules that should be not enabled.
@@ -85,28 +97,6 @@ class CITerminal extends OptionsArgs
         # configuration from remote file
         cim --file https://example.com/git/ci-project.json
 
-    Output :
-    
-        out/
-        └── build_id                # fingerprint from input + config.
-            ├── ci-config.json      # host configuration.
-            ├── ci-history.json     # processes output (stdout, stderr).
-            ├── ci-input.json       # input data.
-            ├── clover.xml          # coverage report.
-            ├── phpunit-logs        # phpunit report.
-            └── repository          # clean repository (clone only).
-
-    Configuration file :
-    
-    env:
-    jobs:
-      - job01:
-        php:
-          version: "8.1"
-          modules: "xdebug,pdo"
-        db:
-          type: "mysql"
-          version: "latest"
 
 EOF;
     }
@@ -123,6 +113,7 @@ EOF;
             ->add(new OptionArg('o', true, 'output'))
             ->add(new OptionArg('d', true, 'database'))
             ->add(new OptionArg(null, true, 'db-version'))
+            ->add(new OptionArg('e', true, 'env'))
             ->add(new OptionArg('h', long: 'help'))
             ->parse();
     }

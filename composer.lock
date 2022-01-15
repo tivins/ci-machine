@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "767b680538a45bf0be9f0d5ef1552e0a",
+    "content-hash": "76247617cfc7e8d9b700ea0232e71e7e",
     "packages": [
         {
             "name": "tivins/php-common",
@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/tivins/php-common.git",
-                "reference": "e3f06389b799f1439e218888c649f36416ac2c33"
+                "reference": "3be7fcff58aab2bc674d75a6d20a9d8edf40040e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/tivins/php-common/zipball/e3f06389b799f1439e218888c649f36416ac2c33",
-                "reference": "e3f06389b799f1439e218888c649f36416ac2c33",
+                "url": "https://api.github.com/repos/tivins/php-common/zipball/3be7fcff58aab2bc674d75a6d20a9d8edf40040e",
+                "reference": "3be7fcff58aab2bc674d75a6d20a9d8edf40040e",
                 "shasum": ""
             },
             "require": {
@@ -49,7 +49,7 @@
                 "issues": "https://github.com/tivins/php-common/issues",
                 "source": "https://github.com/tivins/php-common/tree/main"
             },
-            "time": "2022-01-07T22:16:35+00:00"
+            "time": "2022-01-09T16:15:42+00:00"
         }
     ],
     "packages-dev": [],
@@ -62,7 +62,8 @@
     "prefer-lowest": false,
     "platform": {
         "php": "^8.1",
-        "ext-simplexml": "*"
+        "ext-simplexml": "*",
+        "ext-yaml": "*"
     },
     "platform-dev": [],
     "plugin-api-version": "2.2.0"

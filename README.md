@@ -1,11 +1,12 @@
 # CI-Machine
 
-CI-Machine is a sandbox environment for PHP Continuous Integration.
+CI-Machine is a dynamic sandbox environment for PHP (or maybe more) Continuous Integration.
 
 ### Requirement
 
 * PHP >= 8.1
   * ext-simplexml
+  * ext-yaml
 * [tivins/php-common](https://github.com/tivins/php-common) *(via composer)*
 * [docker](https://www.docker.com/)
 * [docker compose](https://docs.docker.com/compose/install/)
@@ -17,6 +18,7 @@ CI-Machine is a sandbox environment for PHP Continuous Integration.
     Usage:
     
         cim --uri <uri> [options]
+        cim --file <uri> [options]
 
     General options :
 
@@ -32,10 +34,16 @@ CI-Machine is a sandbox environment for PHP Continuous Integration.
                                         Default is "/tmp/cim/[uid]".
                                         
         --compress                      Build a .tar.gz instead of separated files.
+        
+        --docker-registry <host:port>   Specify a registry to save images.
+                                        Default is not set.
 
     Input options :
 
-        --file, -f                      Specify a configuration file. Argument overrides. 
+        --file, -f <file>               Specify a configuration file. Argument overrides. 
+        
+        --env, -e <vars>                Environment variables.
+                                        ex: "DB_NAME=test DB_USER=travis DB_PASS= DB_HOST=127.0.0.1"
 
     Machine options (build-time) :
 
@@ -43,6 +51,7 @@ CI-Machine is a sandbox environment for PHP Continuous Integration.
                                         See https://hub.docker.com/_/php?tab=tags&page=1&name=fpm
 
         --php-modules <modules>         Coma separated list of required PHP modules.
+                                        Allowed values are : xdebug, imagick, mbstring, zip, gd, intl, json, pdo
                                         Ex: "gd,imagick,pdo"
 
         --php-modules-dis <mods>        Coma separated list of PHP modules that should be not enabled.
@@ -79,27 +88,27 @@ CI-Machine is a sandbox environment for PHP Continuous Integration.
         # configuration from remote file
         cim --file https://example.com/git/ci-project.json
 
-    Output :
-    
-        out/
-        └── build_id                # fingerprint from input + config.
-            ├── ci-config.json      # host configuration.
-            ├── ci-history.json     # processes output (stdout, stderr).
-            ├── ci-input.json       # input data.
-            ├── clover.xml          # coverage report.
-            ├── phpunit-logs        # phpunit report.
-            └── repository          # clean repository (clone only).
-
-    Configuration file :
-    
-    env:
-    jobs:
-      - job01:
-        php:
-          version: "8.1"
-          modules: "xdebug,pdo"
-        db:
-          type: "mysql"
-          version: "latest"
 
 ```
+
+Output :
+
+```
+out/
+└── {build_id}/                   # fingerprint from input + config.
+    ├── docker/                   # re-renable docker environment.
+    │   ├── env/                  # generated file 
+    │   │   ├── Dockerfile        # PHP environment 
+    │   │   └── test.php          # report machine status (versions, configs, ...) 
+    │   ├── volume/               # clean repository (clone only).
+    │   └── docker-composer.yml   # generated yml file 
+    ├── ci-config.json            # host configuration.
+    ├── ci-history.json           # processes output (stdout, stderr).
+    ├── ci-input.json             # input data.
+    ├── clover.xml                # coverage report.
+    └── phpunit-logs              # phpunit report.
+```
+
+Configuration file :
+
+configYml

@@ -18,17 +18,6 @@
  */
 namespace Tivins\CIMachine;
 
-enum PHPExtension: string
-{
-    case XDEBUG = 'xdebug';
-    case IMAGICK = 'imagick';
-    case MBSTRING = 'mbstring';
-    case ZIP = 'zip';
-    case GD = 'gd';
-    case INTL = 'intl';
-    case JSON = 'json';
-}
-
 class DockerFile
 {
     private string $phpVersion = 'latest';
@@ -47,6 +36,11 @@ class DockerFile
 
     public function __construct()
     {
+    }
+
+    public function addLib(string $lib)
+    {
+        $this->ext['libs'][] = $lib;
     }
 
     public function setPHPVersion(string $version): static
@@ -81,6 +75,11 @@ class DockerFile
                 $this->ext['libs'][] = 'libicu-dev';
                 $this->ext['extConfig'][] = 'intl';
                 $this->ext['extInstall'][] = 'intl';
+                break;
+            case PHPExtension::PDO:
+                $this->ext['extInstall'][] = 'pdo_mysql';
+                break;
+            case PHPExtension::JSON:
                 break;
         }
         return $this;
